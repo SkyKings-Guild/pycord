@@ -688,7 +688,8 @@ class SlashCommand(ApplicationCommand):
 
         self.attached_to_group: bool = False
 
-        self.options: list[Option] = kwargs.get("options", [])
+        self._options_kwargs = kwargs.get("options", [])
+        self.options: list[Option] = []
         self._validate_parameters()
 
         try:
@@ -703,11 +704,13 @@ class SlashCommand(ApplicationCommand):
         self._after_invoke = None
 
     def _validate_parameters(self):
+        print(self.options, self._options_kwargs)
         params = self._get_signature_parameters()
-        if kwop := self.options:
+        if kwop := self._options_kwargs:
             self.options = self._match_option_param_names(params, kwop)
         else:
             self.options = self._parse_options(params)
+        print(self.options, self._options_kwargs)
 
     def _check_required_params(self, params):
         params = iter(params.items())
@@ -727,6 +730,8 @@ class SlashCommand(ApplicationCommand):
     def _parse_options(self, params, *, check_params: bool = True) -> list[Option]:
         if check_params:
             params = self._check_required_params(params)
+        else:
+            params = iter(params.items())
 
         final_options = []
         for p_name, p_obj in params:
@@ -790,6 +795,7 @@ class SlashCommand(ApplicationCommand):
         return final_options
 
     def _match_option_param_names(self, params, options):
+        options = list(options)
         params = self._check_required_params(params)
 
         check_annotations: list[Callable[[Option, type], bool]] = [
@@ -855,8 +861,7 @@ class SlashCommand(ApplicationCommand):
             or value is None
             and old_cog is not None
         ):
-            params = self._get_signature_parameters()
-            self.options = self._parse_options(params)
+            self._validate_parameters()
 
     @property
     def is_subcommand(self) -> bool:

@@ -704,13 +704,11 @@ class SlashCommand(ApplicationCommand):
         self._after_invoke = None
 
     def _validate_parameters(self):
-        print(self.options, self._options_kwargs)
         params = self._get_signature_parameters()
         if kwop := self._options_kwargs:
             self.options = self._match_option_param_names(params, kwop)
         else:
             self.options = self._parse_options(params)
-        print(self.options, self._options_kwargs)
 
     def _check_required_params(self, params):
         params = iter(params.items())

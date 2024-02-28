@@ -780,12 +780,10 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
         default_thread_slowmode_delay: int = ...,
         type: ChannelType = ...,
         overwrites: Mapping[Role | Member | Snowflake, PermissionOverwrite] = ...,
-    ) -> TextChannel | None:
-        ...
+    ) -> TextChannel | None: ...
 
     @overload
-    async def edit(self) -> TextChannel | None:
-        ...
+    async def edit(self) -> TextChannel | None: ...
 
     async def edit(self, *, reason=None, **options):
         """|coro|
@@ -868,6 +866,8 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
         message: Snowflake | None = None,
         auto_archive_duration: ThreadArchiveDuration = MISSING,
         type: ChannelType | None = None,
+        slowmode_delay: int | None = None,
+        invitable: bool | None = None,
         reason: str | None = None,
     ) -> Thread:
         """|coro|
@@ -894,6 +894,12 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
             The type of thread to create. If a ``message`` is passed then this parameter
             is ignored, as a thread created with a message is always a public thread.
             By default, this creates a private thread if this is ``None``.
+        slowmode_delay: Optional[:class:`int`]
+            Specifies the slowmode rate limit for users in this thread, in seconds.
+            A value of ``0`` disables slowmode. The maximum value possible is ``21600``.
+        invitable: Optional[:class:`bool`]
+            Whether non-moderators can add other non-moderators to this thread.
+            Only available for private threads, where it defaults to True.
         reason: :class:`str`
             The reason for creating a new thread. Shows up on the audit log.
 
@@ -920,6 +926,8 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
                 auto_archive_duration=auto_archive_duration
                 or self.default_auto_archive_duration,
                 type=type.value,
+                rate_limit_per_user=slowmode_delay or 0,
+                invitable=invitable,
                 reason=reason,
             )
         else:
@@ -929,6 +937,7 @@ class TextChannel(discord.abc.Messageable, _TextChannel):
                 name=name,
                 auto_archive_duration=auto_archive_duration
                 or self.default_auto_archive_duration,
+                rate_limit_per_user=slowmode_delay or 0,
                 reason=reason,
             )
 
@@ -1079,12 +1088,10 @@ class ForumChannel(_TextChannel):
         available_tags: list[ForumTag] = ...,
         require_tag: bool = ...,
         overwrites: Mapping[Role | Member | Snowflake, PermissionOverwrite] = ...,
-    ) -> ForumChannel | None:
-        ...
+    ) -> ForumChannel | None: ...
 
     @overload
-    async def edit(self) -> ForumChannel | None:
-        ...
+    async def edit(self) -> ForumChannel | None: ...
 
     async def edit(self, *, reason=None, **options):
         """|coro|
@@ -1823,12 +1830,10 @@ class VoiceChannel(discord.abc.Messageable, VocalGuildChannel):
         video_quality_mode: VideoQualityMode = ...,
         slowmode_delay: int = ...,
         reason: str | None = ...,
-    ) -> VoiceChannel | None:
-        ...
+    ) -> VoiceChannel | None: ...
 
     @overload
-    async def edit(self) -> VoiceChannel | None:
-        ...
+    async def edit(self) -> VoiceChannel | None: ...
 
     async def edit(self, *, reason=None, **options):
         """|coro|
@@ -2448,12 +2453,10 @@ class StageChannel(discord.abc.Messageable, VocalGuildChannel):
         rtc_region: VoiceRegion | None = ...,
         video_quality_mode: VideoQualityMode = ...,
         reason: str | None = ...,
-    ) -> StageChannel | None:
-        ...
+    ) -> StageChannel | None: ...
 
     @overload
-    async def edit(self) -> StageChannel | None:
-        ...
+    async def edit(self) -> StageChannel | None: ...
 
     async def edit(self, *, reason=None, **options):
         """|coro|
@@ -2627,12 +2630,10 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
         nsfw: bool = ...,
         overwrites: Mapping[Role | Member, PermissionOverwrite] = ...,
         reason: str | None = ...,
-    ) -> CategoryChannel | None:
-        ...
+    ) -> CategoryChannel | None: ...
 
     @overload
-    async def edit(self) -> CategoryChannel | None:
-        ...
+    async def edit(self) -> CategoryChannel | None: ...
 
     async def edit(self, *, reason=None, **options):
         """|coro|

@@ -734,6 +734,9 @@ class ApplicationCommandMixin(ABC):
         if commands is None:
             commands = self.pending_application_commands
 
+        for cmd in commands:
+            print(cmd.name, cmd.contexts, cmd.integration_types)
+
         if guild_ids is not None:
             for cmd in commands:
                 cmd.guild_ids = guild_ids

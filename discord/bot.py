@@ -276,6 +276,7 @@ class ApplicationCommandMixin(ABC):
                     if match_ is not MISSING and _check_command(subcommand, match_):
                         return True
             else:
+                print(cmd.name, cmd.contexts, cmd.integration_types)
                 as_dict = cmd.to_dict()
                 to_check = {
                     "dm_permission": None,
@@ -733,9 +734,6 @@ class ApplicationCommandMixin(ABC):
 
         if commands is None:
             commands = self.pending_application_commands
-
-        for cmd in commands:
-            print(cmd.name, cmd.contexts, cmd.integration_types)
 
         if guild_ids is not None:
             for cmd in commands:

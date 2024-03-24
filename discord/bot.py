@@ -276,7 +276,6 @@ class ApplicationCommandMixin(ABC):
                     if match_ is not MISSING and _check_command(subcommand, match_):
                         return True
             else:
-                print(cmd.name, cmd.contexts, cmd.integration_types)
                 as_dict = cmd.to_dict()
                 to_check = {
                     "dm_permission": None,

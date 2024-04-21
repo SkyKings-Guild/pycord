@@ -2027,6 +2027,36 @@ class Guild(Hashable):
 
         return MemberIterator(self, limit=limit, after=after)
 
+    async def search_members(self, query: str, *, limit: int = 1000) -> list[Member]:
+        """Search for guild members whose usernames or nicknames start with the query string. Unlike :meth:`fetch_members`, this does not require :meth:`Intents.members`.
+
+        .. note::
+
+            This method is an API call. For general usage, consider filtering :attr:`members` instead.
+
+        .. versionadded:: 2.6
+
+        Parameters
+        ----------
+        query: :class:`str`
+            Searches for usernames and nicknames that start with this string, case-insensitive.
+        limit: :class:`int`
+            The maximum number of members to retrieve, up to 1000.
+
+        Returns
+        -------
+        List[:class:`Member`]
+            The list of members that have matched the query.
+
+        Raises
+        ------
+        HTTPException
+            Getting the members failed.
+        """
+
+        data = await self._state.http.search_members(self.id, query, limit)
+        return [Member(data=m, guild=self, state=self._state) for m in data]
+
     async def fetch_member(self, member_id: int, /) -> Member:
         """|coro|
 
@@ -3354,7 +3384,7 @@ class Guild(Hashable):
         self,
         query: str | None = None,
         *,
-        limit: int = 5,
+        limit: int | None = 5,
         user_ids: list[int] | None = None,
         presences: bool = False,
         cache: bool = True,
@@ -3372,10 +3402,14 @@ class Guild(Hashable):
         ----------
         query: Optional[:class:`str`]
             The string that the username's start with.
-        limit: :class:`int`
-            The maximum number of members to send back. This must be
-            a number between 5 and 100.
-        presences: :class:`bool`
+        user_ids: Optional[List[:class:`int`]]
+            List of user IDs to search for. If the user ID is not in the guild then it won't be returned.
+
+            .. versionadded:: 1.4
+        limit: Optional[:class:`int`]
+            The maximum number of members to send back. If no query is passed, passing ``None`` returns all members.
+            If a ``query`` or ``user_ids`` is passed, must be between 1 and 100. Defaults to 5.
+        presences: Optional[:class:`bool`]
             Whether to request for presences to be provided. This defaults
             to ``False``.
 
@@ -3383,11 +3417,7 @@ class Guild(Hashable):
 
         cache: :class:`bool`
             Whether to cache the members internally. This makes operations
-            such as :meth:`get_member` work for those that matched.
-        user_ids: Optional[List[:class:`int`]]
-            List of user IDs to search for. If the user ID is not in the guild then it won't be returned.
-
-            .. versionadded:: 1.4
+            such as :meth:`get_member` work for those that matched. Defaults to ``True``.
 
         Returns
         -------
@@ -3407,12 +3437,18 @@ class Guild(Hashable):
         if presences and not self._state._intents.presences:
             raise ClientException("Intents.presences must be enabled to use this.")
 
-        if query is None:
-            if query == "":
-                raise ValueError("Cannot pass empty query string.")
+        if not limit or limit > 100 or limit < 1:
+            if query or user_ids:
+                raise ValueError(
+                    "limit must be between 1 and 100 when using query or user_ids"
+                )
+            if not limit:
+                query = ""
+                limit = 0
 
+        if query is None:
             if user_ids is None:
-                raise ValueError("Must pass either query or user_ids")
+                raise ValueError("Must pass query or user_ids, or set limit to None")
 
         if user_ids is not None and query is not None:
             raise ValueError("Cannot pass both query and user_ids")
@@ -3420,7 +3456,6 @@ class Guild(Hashable):
         if user_ids is not None and not user_ids:
             raise ValueError("user_ids must contain at least 1 value")
 
-        limit = min(100, limit or 5)
         return await self._state.query_members(
             self,
             query=query,

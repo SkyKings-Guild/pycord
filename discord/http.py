@@ -71,6 +71,7 @@ if TYPE_CHECKING:
         message,
         monetization,
         onboarding,
+        poll,
         role,
         scheduled_events,
         sticker,
@@ -464,13 +465,14 @@ class HTTPClient:
         tts: bool = False,
         embed: embed.Embed | None = None,
         embeds: list[embed.Embed] | None = None,
-        nonce: str | None = None,
+        nonce: int | str | None = None,
         enforce_nonce: bool | None = None,
         allowed_mentions: message.AllowedMentions | None = None,
         message_reference: message.MessageReference | None = None,
         stickers: list[sticker.StickerItem] | None = None,
         components: list[components.Component] | None = None,
         flags: int | None = None,
+        poll: poll.Poll | None = None,
     ) -> Response[message.Message]:
         r = Route("POST", "/channels/{channel_id}/messages", channel_id=channel_id)
         payload = {}
@@ -508,6 +510,9 @@ class HTTPClient:
         if flags:
             payload["flags"] = flags
 
+        if poll:
+            payload["poll"] = poll
+
         return self.request(r, json=payload)
 
     def send_typing(self, channel_id: Snowflake) -> Response[None]:
@@ -524,13 +529,14 @@ class HTTPClient:
         tts: bool = False,
         embed: embed.Embed | None = None,
         embeds: Iterable[embed.Embed | None] | None = None,
-        nonce: str | None = None,
+        nonce: int | str | None = None,
         enforce_nonce: bool | None = None,
         allowed_mentions: message.AllowedMentions | None = None,
         message_reference: message.MessageReference | None = None,
         stickers: list[sticker.StickerItem] | None = None,
         components: list[components.Component] | None = None,
         flags: int | None = None,
+        poll: poll.Poll | None = None,
     ) -> Response[message.Message]:
         form = []
 
@@ -555,6 +561,8 @@ class HTTPClient:
             payload["sticker_ids"] = stickers
         if flags:
             payload["flags"] = flags
+        if poll:
+            payload["poll"] = poll
 
         attachments = []
         form.append({"name": "payload_json"})
@@ -587,13 +595,14 @@ class HTTPClient:
         tts: bool = False,
         embed: embed.Embed | None = None,
         embeds: list[embed.Embed] | None = None,
-        nonce: str | None = None,
+        nonce: int | str | None = None,
         enforce_nonce: bool | None = None,
         allowed_mentions: message.AllowedMentions | None = None,
         message_reference: message.MessageReference | None = None,
         stickers: list[sticker.StickerItem] | None = None,
         components: list[components.Component] | None = None,
         flags: int | None = None,
+        poll: poll.Poll | None = None,
     ) -> Response[message.Message]:
         r = Route("POST", "/channels/{channel_id}/messages", channel_id=channel_id)
         return self.send_multipart_helper(
@@ -610,6 +619,7 @@ class HTTPClient:
             stickers=stickers,
             components=components,
             flags=flags,
+            poll=poll,
         )
 
     def edit_multipart_helper(
@@ -907,7 +917,6 @@ class HTTPClient:
         user_id: Snowflake,
         guild_id: Snowflake,
         delete_message_seconds: int = None,
-        delete_message_days: int = None,
         reason: str | None = None,
     ) -> Response[None]:
         r = Route(
@@ -920,16 +929,28 @@ class HTTPClient:
 
         if delete_message_seconds:
             params["delete_message_seconds"] = delete_message_seconds
-        elif delete_message_days:
-            warn_deprecated(
-                "delete_message_days",
-                "delete_message_seconds",
-                "2.2",
-                reference="https://github.com/discord/discord-api-docs/pull/5219",
-            )
-            params["delete_message_days"] = delete_message_days
 
         return self.request(r, params=params, reason=reason)
+
+    def bulk_ban(
+        self,
+        user_ids: list[Snowflake],
+        guild_id: Snowflake,
+        delete_message_seconds: int = None,
+        reason: str | None = None,
+    ) -> Response[guild.GuildBulkBan]:
+        r = Route(
+            "POST",
+            "/guilds/{guild_id}/bulk-ban",
+            guild_id=guild_id,
+        )
+        payload = {
+            "user_ids": user_ids,
+        }
+        if delete_message_seconds:
+            payload["delete_message_seconds"] = delete_message_seconds
+
+        return self.request(r, json=payload, reason=reason)
 
     def unban(
         self, user_id: Snowflake, guild_id: Snowflake, *, reason: str | None = None
@@ -1192,7 +1213,7 @@ class HTTPClient:
         files: Sequence[File] | None = None,
         embed: embed.Embed | None = None,
         embeds: list[embed.Embed] | None = None,
-        nonce: str | None = None,
+        nonce: int | str | None = None,
         allowed_mentions: message.AllowedMentions | None = None,
         stickers: list[sticker.StickerItem] | None = None,
         components: list[components.Component] | None = None,
@@ -2140,8 +2161,8 @@ class HTTPClient:
         self,
         channel_id: Snowflake,
         target: Snowflake,
-        allow: str,
-        deny: str,
+        allow: int | str,
+        deny: int | str,
         type: channel.OverwriteType,
         *,
         reason: str | None = None,
@@ -2991,6 +3012,43 @@ class HTTPClient:
             json=payload,
             reason=reason,
         )
+
+    # Polls
+
+    def expire_poll(
+        self, channel_id: Snowflake, message_id: Snowflake
+    ) -> Response[message.Message]:
+        return self.request(
+            Route(
+                "POST",
+                "/channels/{channel_id}/polls/{message_id}/expire",
+                channel_id=channel_id,
+                message_id=message_id,
+            )
+        )
+
+    def get_answer_voters(
+        self,
+        channel_id: Snowflake,
+        message_id: Snowflake,
+        answer_id: int,
+        limit: int,
+        after: Snowflake | None = None,
+    ) -> Response[list[user.User]]:
+        r = Route(
+            "GET",
+            "/channels/{channel_id}/polls/{message_id}/answers/{answer_id}",
+            channel_id=channel_id,
+            message_id=message_id,
+            answer_id=answer_id,
+        )
+
+        params: dict[str, Any] = {
+            "limit": limit,
+        }
+        if after:
+            params["after"] = after
+        return self.request(r, params=params)
 
     # Misc
 

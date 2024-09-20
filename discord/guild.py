@@ -4145,3 +4145,25 @@ class Guild(Hashable):
             guild_id=self.id,
             exclude_ended=exclude_ended,
         )
+
+    async def add_member_roles(self, member: int, role: Role, *, reason: str | None = None) -> None:
+        """|coro|
+        Adds a role to a guild member with the specified ID.
+        
+        Parameters
+        ----------
+        member: :class:`int`
+            The member's ID.
+        role: :class:`Role`
+            The role to add.
+        reason: Optional[:class:`str`]
+            The reason for doing this action. Shows up on the audit log.
+            
+        Raises
+        ------
+        Forbidden
+            You do not have the proper permissions to add the role.
+        HTTPException
+            Role adding failed.
+        """
+        await self._state.http.add_role(self.id, member, role.id, reason=reason)
